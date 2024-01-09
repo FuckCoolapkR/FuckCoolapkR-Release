@@ -1,0 +1,11 @@
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    // 自定义算法实现依赖库
+    implementation 'com.github.megatronking.stringfog:interface:5.0.0'
+    implementation 'commons-codec:commons-codec:1.16.0'
+
+}

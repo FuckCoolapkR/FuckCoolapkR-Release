@@ -1,0 +1,167 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'top.niunaijun.blackobfuscator'
+    id 'stringfog'
+}
+
+stringfog {
+    enable true
+    debug true
+    // 指定加解密的具体实现类，可以用默认实现的xor库或者aes-cbc库，也可以自己定制实现，记得配置dependencies
+    implementation 'org.fuck.coolapk.StringFogImpl'
+    // 指定需加密的代码包路径，可配置多个，未指定将默认全部加密
+//    fogPackages = [
+//            "org.fuck.coolapk",
+//            "org.fuck.coolapk.hook",
+//            "org.fuck.coolapk.utils",
+//            "org.fuck.coolapk.view"
+//    ]
+    mode bytes
+}
+
+android {
+    namespace "org.hello.coolapk"
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "org.hello.coolapk"
+        minSdk 27
+        targetSdk 33
+        versionCode 1166
+        versionName "RC-1.16.6"
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=none"
+                def flags = [
+                        "-funwind-tables",
+                        "-fasynchronous-unwind-tables",
+                        "-Qunused-arguments",
+                        "-fno-rtti",
+                        "-fno-exceptions",
+                        "-fvisibility=hidden",
+                        "-fvisibility-inlines-hidden",
+                        "-Wno-unused-value",
+                        "-Wno-unused-variable",
+                        "-Wno-unused-command-line-argument",
+                ]
+                targets 'DexHelper'
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86'
+                cppFlags = flags
+                cFlags = flags
+            }
+        }
+    }
+
+    signingConfigs {
+        releaseSigningConfig {
+            Properties properties = new Properties()
+            properties.load(project.rootProject.file('local.properties').newDataInputStream())
+            storeFile rootProject.file("app/FuckCoolapkR.jks")
+            storePassword properties.getProperty("KEYSTORE_PASSWORD")
+            keyAlias properties.getProperty("KEY_ALIAS")
+            keyPassword properties.getProperty("KEY_PASSWORD")
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.releaseSigningConfig
+            minifyEnabled false
+            externalNativeBuild {
+                cmake {
+                    arguments += [
+                            "-DCMAKE_CXX_FLAGS_DEBUG=-Og",
+                            "-DCMAKE_C_FLAGS_DEBUG=-Og",
+                    ]
+                }
+            }
+        }
+        release {
+            signingConfig signingConfigs.releaseSigningConfig
+            minifyEnabled true
+            BlackObfuscator {
+                // 是否启用
+                enabled false
+                // 混淆深度
+                depth 3
+                // 需要混淆的包或者类(匹配前面一段)
+                obfClass = ["org.fuck.coolapk"]
+                // blackClass中的包或者类不会进行混淆(匹配前面一段)
+            }
+            externalNativeBuild {
+                cmake {
+                    def releaseFlags = [
+                            "-ffunction-sections",
+                            "-fdata-sections",
+                            "-Wl,--gc-sections",
+                            "-Wl,--exclude-libs,ALL",
+                            "-Wl,--strip-all",
+                            "-Oz",
+                            "-flto=thin",
+                    ]
+                    def configFlags = [
+                            "-Oz",
+                            "-DNDEBUG"
+                    ].join(" ")
+                    cppFlags += releaseFlags
+                    cFlags += releaseFlags
+                    arguments += [
+                            "-DCMAKE_BUILD_TYPE=Release",
+                            "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
+                            "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
+                    ]
+                }
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = '11'
+    }
+    externalNativeBuild {
+        cmake {
+            path "src/main/cpp/CMakeLists.txt"
+            version "3.18.1"
+        }
+    }
+    buildFeatures {
+        prefab true
+    }
+    androidResources {
+        noCompress 'libDexHelper.so'
+    }
+    ndkVersion '25.0.8775105'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.compilerArgs += ["-XDstringConcat=inline"]
+}
+
+tasks.withType(KotlinCompile).configureEach {
+    it.kotlinOptions.freeCompilerArgs += ["-Xstring-concat=inline"]
+}
+
+dependencies {
+    compileOnly 'de.robv.android.xposed:api:82'
+    implementation 'com.github.kyuubiran:EzXHelper:2.0.7'
+    implementation 'com.github.megatronking.stringfog:interface:4.0.1'
+    implementation 'commons-codec:commons-codec:1.16.0'
+    implementation 'io.github.billywei01:fastkv:2.3.0'
+    implementation 'io.github.billywei01:packable:1.1.0'
+    compileOnly(project(':stub'))
+    implementation(project(':libs:dexkit'))
+    implementation "dev.rikka.ndk.thirdparty:cxx:1.2.0"
+    implementation group: 'org.springframework.security', name: 'spring-security-crypto', version: '5.8.1'
+}
+
+dependencies {
+    def appCenterSdkVersion = '5.0.1'
+    implementation "com.microsoft.appcenter:appcenter-analytics:${appCenterSdkVersion}"
+    implementation "com.microsoft.appcenter:appcenter-crashes:${appCenterSdkVersion}"
+}

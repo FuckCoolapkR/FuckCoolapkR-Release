@@ -1,0 +1,163 @@
+include "encode_value.fbs";
+include "enums.fbs";
+include "ranges.fbs";
+
+namespace dexkit.schema;
+
+table StringMatcher {
+    value: string;
+    match_type: StringMatchType;
+    ignore_case: bool;
+}
+
+table AccessFlagsMatcher {
+    flags: uint32;
+    match_type: MatchType;
+}
+
+table TargetElementTypesMatcher {
+    types: [TargetElementType];
+    match_type: MatchType;
+}
+
+union AnnotationEncodeValueMatcher {
+    EncodeValueByte,
+    EncodeValueShort,
+    EncodeValueChar,
+    EncodeValueInt,
+    EncodeValueLong,
+    EncodeValueFloat,
+    EncodeValueDouble,
+    StringMatcher,
+    ClassMatcher,
+    MethodMatcher,
+    // enum
+    FieldMatcher,
+    AnnotationEncodeArrayMatcher,
+    AnnotationMatcher,
+    EncodeValueNull,
+    EncodeValueBoolean,
+}
+
+table AnnotationEncodeArrayMatcher {
+    values: [AnnotationEncodeValueMatcher];
+    match_type: MatchType;
+    value_count: IntRange;
+}
+
+table AnnotationElementMatcher {
+    name: StringMatcher;
+    value: AnnotationEncodeValueMatcher;
+}
+
+table AnnotationElementsMatcher {
+    // maybe has null
+    elements: [AnnotationElementMatcher];
+    match_type: MatchType;
+    element_count: IntRange;
+}
+
+table AnnotationMatcher {
+    type: ClassMatcher;
+    target_element_types: TargetElementTypesMatcher;
+    policy: RetentionPolicyType;
+    elements: AnnotationElementsMatcher;
+    using_strings: [StringMatcher];
+}
+
+table AnnotationsMatcher {
+    annotations: [AnnotationMatcher];
+    match_type: MatchType;
+    annotation_count: IntRange;
+}
+
+table ParameterMatcher {
+    annotations: AnnotationsMatcher;
+    parameter_type: ClassMatcher;
+}
+
+table ParametersMatcher {
+    // maybe has null
+    parameters: [ParameterMatcher];
+    parameter_count: IntRange;
+}
+
+table OpCodesMatcher {
+    op_codes: [int16];
+    match_type: OpCodeMatchType;
+    op_code_count: IntRange;
+}
+
+table UsingFieldMatcher {
+    field: FieldMatcher;
+    using_type: UsingType;
+}
+
+union Number {
+    EncodeValueByte,
+    EncodeValueShort,
+    EncodeValueInt,
+    EncodeValueLong,
+    EncodeValueFloat,
+    EncodeValueDouble,
+}
+
+table MethodMatcher {
+    method_name: StringMatcher;
+    access_flags: AccessFlagsMatcher;
+    declaring_class: ClassMatcher;
+    return_type: ClassMatcher;
+    parameters: ParametersMatcher;
+    annotations: AnnotationsMatcher;
+    op_codes: OpCodesMatcher;
+    using_strings: [StringMatcher];
+    using_fields: [UsingFieldMatcher];
+    using_numbers: [Number];
+    invoking_methods: MethodsMatcher;
+    method_callers: MethodsMatcher;
+}
+
+table MethodsMatcher {
+    methods: [MethodMatcher];
+    match_type: MatchType;
+    method_count: IntRange;
+}
+
+table InterfacesMatcher {
+    interfaces: [ClassMatcher];
+    match_type: MatchType;
+    interface_count: IntRange;
+}
+
+table FieldMatcher {
+    field_name: StringMatcher;
+    access_flags: AccessFlagsMatcher;
+    declaring_class: ClassMatcher;
+    type_class: ClassMatcher;
+    annotations: AnnotationsMatcher;
+    get_methods: MethodsMatcher;
+    put_methods: MethodsMatcher;
+}
+
+table FieldsMatcher {
+    fields: [FieldMatcher];
+    match_type: MatchType;
+    field_count: IntRange;
+}
+
+table ClassMatcher {
+    smali_source: StringMatcher;
+    class_name: StringMatcher;
+    access_flags: AccessFlagsMatcher;
+    super_class: ClassMatcher;
+    interfaces: InterfacesMatcher;
+    annotations: AnnotationsMatcher;
+    fields: FieldsMatcher;
+    methods: MethodsMatcher;
+    using_strings: [StringMatcher];
+}
+
+table BatchUsingStringsMatcher {
+    union_key: string;
+    using_strings: [StringMatcher];
+}

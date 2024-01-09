@@ -1,0 +1,193 @@
+import com.vanniktech.maven.publish.SonatypeHost
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+plugins {
+    id("com.android.library")
+    id("com.vanniktech.maven.publish") version "0.25.3"
+    id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.dokka")
+    id("signing")
+}
+
+def KDockRepoName = "LuckyPray/DexKit-Doc"
+
+def libVersion = "2.0.0"
+
+android {
+    namespace = "org.luckypray.dexkit"
+    compileSdk = 34
+    ndkVersion = "26.1.10909125"
+
+    defaultConfig {
+        minSdk = 21
+        targetSdk = 34
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=none"
+                def flags = [
+                        "-funwind-tables",
+                        "-fasynchronous-unwind-tables",
+                        "-Qunused-arguments",
+                        "-fno-rtti",
+                        "-fno-exceptions",
+                        "-fvisibility=hidden",
+                        "-fvisibility-inlines-hidden",
+                        "-Wno-unused-value",
+                        "-Wno-unused-variable",
+                        "-Wno-unused-command-line-argument",
+                ]
+                cppFlags = ["-std=c++20"] + flags
+                cFlags = ["-std=c18"] + flags
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            externalNativeBuild {
+                cmake {
+                    def releaseFlags = [
+                            "-ffunction-sections",
+                            "-fdata-sections",
+                            "-Wl,--gc-sections",
+                            "-Wl,--exclude-libs,ALL",
+                            "-Wl,--strip-all",
+                            "-flto=full",
+                    ]
+                    def configFlags = [
+                            "-Oz",
+                            "-DNDEBUG"
+                    ].join(" ")
+                    cppFlags += releaseFlags
+                    cFlags += releaseFlags
+                    arguments += [
+                            "-DCMAKE_BUILD_TYPE=Release",
+                            "-DCMAKE_CXX_FLAGS_RELEASE=$configFlags",
+                            "-DCMAKE_C_FLAGS_RELEASE=$configFlags",
+                    ]
+                }
+            }
+            consumerProguardFiles "proguard-rules.pro"
+        }
+
+        debug {
+            externalNativeBuild {
+                cmake {
+                    arguments "-DCMAKE_CXX_FLAGS_DEBUG=-Og", "-DCMAKE_C_FLAGS_DEBUG=-Og"
+                }
+            }
+        }
+
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile("AndroidManifest.xml")
+            java.setSrcDirs(["${project(':dexkit').projectDir}/src/main/java"])
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file("CMakeLists.txt")
+            version "3.18.1"
+        }
+    }
+
+    buildFeatures {
+        prefab true
+    }
+}
+
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(11))
+}
+
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions.jvmTarget = JavaVersion.VERSION_11
+    kotlinOptions.languageVersion = "1.5"
+}
+
+dependencies {
+    implementation("com.google.flatbuffers:flatbuffers-java:23.5.26")
+    implementation("dev.rikka.ndk.thirdparty:cxx:1.2.0")
+    //noinspection DifferentStdlibGradleVersion
+    implementation("org.jetbrains.kotlin:kotlin-stdlib") {
+        version {
+            require "$kotlin_require_version"
+        }
+    }
+
+    lintPublish(project(":lint-rules"))
+}
+
+mavenPublishing {
+    coordinates("org.luckypray", "dexkit", libVersion)
+    pom {
+        name = "dexkit"
+        description = "A high-performance runtime parsing library for dex implemented in C++."
+        url = "https://github.com/LuckyPray/DexKit"
+        licenses {
+            license {
+                name = "LGPL-3.0 license"
+                url = "https://www.gnu.org/licenses/lgpl-3.0.html"
+                distribution = "https://www.gnu.org/licenses/lgpl-3.0.html"
+            }
+        }
+        developers {
+            developer {
+                name.set("luckypray")
+                url.set("https://luckypray.org/DexKit")
+            }
+        }
+        scm {
+            connection = "scm:git:git://github.com/LuckyPray/DexKit.git"
+            developerConnection = "scm:git:ssh://github.com/LuckyPray/DexKit.git"
+            url = "https://github.com/LuckyPray/DexKit.git"
+        }
+    }
+    publishToMavenCentral(SonatypeHost.S01)
+    signAllPublications()
+}
+
+dokkaHtml.configure {
+    dokkaSourceSets {
+        named("main") {
+            noAndroidSdkLink.set(true)
+            noStdlibLink.set(true)
+            noJdkLink.set(true)
+        }
+    }
+}
+
+tasks.register("updateKDoc") {
+    doLast {
+        def dokkaHtmlDir = layout.buildDirectory.file("dokka/html").get().asFile
+        if (dokkaHtmlDir.exists()) {
+            println(dokkaHtmlDir.absolutePath)
+            exec {
+                workingDir dokkaHtmlDir.absolutePath
+                def deployRepo = "https://username:${System.getenv("ACCESS_TOKEN")}@github.com/${KDockRepoName}.git"
+                def userName = System.getenv("GITHUB_ACTOR")
+                def userEmail = "${userName}@users.noreply.github.com"
+                if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")) {
+                    commandLine = ["cmd", "/c"]
+                } else {
+                    commandLine = ["sh", "-c"]
+                }
+                def gitCommand = "git init -b master " +
+                        "&& git config user.name ${userName} " +
+                        "&& git config user.email ${userEmail} " +
+                        "&& git add . " +
+                        "&& git commit -m 'Auto deploy KDoc' " +
+                        "&& git push -f ${deployRepo} master:main"
+                commandLine += [gitCommand]
+                println(gitCommand)
+            }
+        }
+    }
+}

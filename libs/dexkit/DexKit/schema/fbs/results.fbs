@@ -1,0 +1,125 @@
+include "encode_value.fbs";
+include "enums.fbs";
+
+namespace dexkit.schema;
+
+table ClassMeta {
+    id: uint32;
+    dex_id: uint32;
+    source_file: string;
+    access_flags: uint32;
+    dex_descriptor: string;
+    super_class: uint32;
+    interfaces: [int32];
+    methods: [int32];
+    fields: [int32];
+    // annotations, super_class, interfaces, fields, methods
+    // need to call the corresponding method to actively load
+}
+
+table ClassMetaArrayHolder {
+    classes: [ClassMeta];
+}
+
+table MethodMeta {
+    id: uint32;
+    dex_id: uint32;
+    class_id: uint32;
+    access_flags: uint32;
+    dex_descriptor: string;
+    return_type: uint32;
+    parameter_types: [int32];
+}
+
+table MethodMetaArrayHolder {
+    methods: [MethodMeta];
+}
+
+table FieldMeta {
+    id: uint32;
+    dex_id: uint32;
+    class_id: uint32;
+    access_flags: uint32;
+    dex_descriptor: string;
+    type_id: uint32;
+}
+
+table FieldMetaArrayHolder {
+    fields: [FieldMeta];
+}
+
+union AnnotationEncodeValue {
+    EncodeValueByte,
+    EncodeValueShort,
+    EncodeValueChar,
+    EncodeValueInt,
+    EncodeValueLong,
+    EncodeValueFloat,
+    EncodeValueDouble,
+    EncodeValueString,
+    ClassMeta,
+    MethodMeta,
+    // enum use it
+    FieldMeta,
+    AnnotationEncodeArray,
+    AnnotationMeta,
+    EncodeValueNull,
+    EncodeValueBoolean,
+}
+
+table AnnotationEncodeValueMeta {
+    type: AnnotationEncodeValueType;
+    value: AnnotationEncodeValue;
+}
+
+table AnnotationEncodeArray {
+    values: [AnnotationEncodeValueMeta];
+}
+
+table AnnotationElementMeta {
+    name: string;
+    value: AnnotationEncodeValueMeta;
+}
+
+table AnnotationMeta {
+    dex_id: uint32;
+    type_id: uint32;
+    type_descriptor: string;
+    visibility: AnnotationVisibilityType;
+    elements: [AnnotationElementMeta];
+}
+
+table AnnotationMetaArrayHolder {
+    annotations: [AnnotationMeta];
+}
+
+table ParametersAnnotationMetaArrayHoler {
+    annotations_array: [AnnotationMetaArrayHolder];
+}
+
+table BatchClassMeta {
+    union_key: string;
+    classes: [ClassMeta];
+}
+
+table BatchClassMetaArrayHolder {
+    items: [BatchClassMeta];
+}
+
+table BatchMethodMeta {
+    union_key: string;
+    methods: [MethodMeta];
+}
+
+table BatchMethodMetaArrayHolder {
+    items: [BatchMethodMeta];
+}
+
+table UsingFieldMeta {
+    field: FieldMeta;
+    using_type: UsingType;
+}
+
+table UsingFieldMetaArrayHolder {
+    items: [UsingFieldMeta];
+}

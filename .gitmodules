@@ -1,0 +1,6 @@
+[submodule "libs/dexkit/DexKit"]
+	path = libs/dexkit/DexKit
+	url = https://github.com/LuckyPray/DexKit
+[submodule "libs/syscall/Syscall"]
+	path = libs/syscall/Syscall
+	url = https://chromium.googlesource.com/linux-syscall-support

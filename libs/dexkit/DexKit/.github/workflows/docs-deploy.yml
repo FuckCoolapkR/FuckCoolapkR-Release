@@ -1,0 +1,31 @@
+name: Vuepress Document Deploy
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'doc-source/**'
+      - '.github/workflows/docs-deploy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  vuepress-doc-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone master branch
+        uses: actions/checkout@v3.3.0
+
+      - name: vuepress-deploy
+        uses: jenkey2011/vuepress-deploy@master
+        env:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          TARGET_REPO: ${{ github.repository }}
+          TARGET_BRANCH: docs
+          BUILD_SCRIPT: |
+            git config --global --add safe.directory "*" \
+            && cd doc-source && yarn -i --network-timeout 1000000000 && yarn docs:build
+          BUILD_DIR: ../docs

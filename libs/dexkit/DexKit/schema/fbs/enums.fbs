@@ -1,0 +1,75 @@
+namespace dexkit.schema;
+
+enum StringMatchType: byte {
+    Contains,
+    StartWith,
+    EndWith,
+    SimilarRegex,
+    Equal,
+}
+
+enum OpCodeMatchType: byte {
+    Contains,
+    StartWith,
+    EndWith,
+    Equal,
+}
+
+enum UsingType: byte {
+    Any,
+    Get,
+    Put,
+}
+
+enum MatchType: byte {
+    Contains,
+    Equal,
+}
+
+enum TargetElementType: byte {
+    Type,
+    Field,
+    Method,
+    Parameter,
+    Constructor,
+    LocalVariable,
+    AnnotationType,
+    Package,
+    // for jdk 1.8
+    TypeParameter,
+    TypeUse,
+}
+
+enum RetentionPolicyType: byte {
+    // not use
+    Any,
+    Source,
+    Class,
+    Runtime,
+}
+
+enum AnnotationVisibilityType: byte {
+    Build,
+    Runtime,
+    System,
+    // sub annotation is '-1'
+    None,
+}
+
+enum AnnotationEncodeValueType: byte {
+    ByteValue,
+    ShortValue,
+    CharValue,
+    IntValue,
+    LongValue,
+    FloatValue,
+    DoubleValue,
+    StringValue,
+    TypeValue,
+    MethodValue,
+    EnumValue,
+    ArrayValue,
+    AnnotationValue,
+    NullValue,
+    BoolValue,
+}
