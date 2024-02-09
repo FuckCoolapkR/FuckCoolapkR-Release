@@ -30,8 +30,8 @@ android {
         applicationId "org.hello.coolapk"
         minSdk 27
         targetSdk 33
-        versionCode 1166
-        versionName "RC-1.16.6"
+        versionCode 1170
+        versionName "Alpha-1.17.0"
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_STL=none"
@@ -127,9 +127,10 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.18.1"
+            version "3.27.1"
         }
     }
+
     buildFeatures {
         prefab true
     }

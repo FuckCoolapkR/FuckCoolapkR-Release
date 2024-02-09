@@ -36,6 +36,7 @@ class ViewBuilder(private val context: Context) {
         }
     }
 
+
     fun button(text: String? = null, onClickListener: View.OnClickListener? = null): Button {
         return Button(context).also { view ->
             text?.let { view.text = it }
@@ -44,7 +45,17 @@ class ViewBuilder(private val context: Context) {
         }
     }
 
-    fun textWithSwitch(text: String, key: String, defaultValue: Boolean = false, textSize: Float? = null, textColor: Int? = null, onClickListener: ((TextView) -> Unit)? = null, onCheckedChangeListener: CompoundButton.OnCheckedChangeListener? = null, doubleConfirm: Boolean = false): View {
+    fun textWithSwitch(
+        text: String,
+        key: String,
+        defaultValue: Boolean = false,
+        textSize: Float? = null,
+        textColor: Int? = null,
+        onClickListener: ((TextView) -> Unit)? = null,
+        onCheckedChangeListener: CompoundButton.OnCheckedChangeListener? = null,
+        doubleConfirm: Boolean = false,
+        message: String = "该功能实验中，尚不稳定，请谨慎使用"
+    ): View {
         val textView = text(text, textSize, textColor, onClickListener)
         val switch = Switch(context).also { view ->
             view.isChecked = OwnSP.ownSP.getBoolean(key, defaultValue)
@@ -57,7 +68,7 @@ class ViewBuilder(private val context: Context) {
                 if (doubleConfirm && b) {
                     getDialogBuilder(context).apply {
                         setTitle("警告")
-                        setMessage("该功能实验中，尚不稳定，请谨慎使用")
+                        setMessage(message)
                         setPositiveButton("我已知晓", null)
                         setNegativeButton("取消启用") {_, _ -> compoundButton.isChecked = false}
                         setOnCancelListener { compoundButton.isChecked = false }

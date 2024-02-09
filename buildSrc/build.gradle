@@ -1,11 +1,16 @@
 repositories {
-    google()
-    mavenCentral()
+    maven { url 'https://maven.aliyun.com/repository/public/' }
+    maven { url 'https://maven.aliyun.com/repository/gradle-plugin/' }
+    maven { url 'https://maven.aliyun.com/repository/central/' }
+    maven { url 'https://maven.aliyun.com/repository/google/' }
+    maven { url 'https://repo.maven.apache.org/maven2/' }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     // 自定义算法实现依赖库
-    implementation 'com.github.megatronking.stringfog:interface:5.0.0'
+    implementation group: 'com.github.megatronking.stringfog', name: 'core', version: '5.0.0'
+    implementation group: 'com.github.megatronking.stringfog', name: 'interface', version: '5.0.0'
     implementation 'commons-codec:commons-codec:1.16.0'
 
 }

@@ -12,31 +12,18 @@ import com.github.kyuubiran.ezxhelper.finders.MethodFinder.`-Static`.methodFinde
 import org.fuck.coolapk.CoolContext
 import org.fuck.coolapk.XposedEntry
 import org.fuck.coolapk.base.BaseHook
-import org.fuck.coolapk.utils.ContentEncodeUtils
-import org.fuck.coolapk.utils.CoolapkSP
-import org.fuck.coolapk.utils.OwnSP
-import org.fuck.coolapk.utils.RestoreDraft
-import org.fuck.coolapk.utils.callMethod
-import org.fuck.coolapk.utils.callStaticMethod
-import org.fuck.coolapk.utils.findClassOrNull
-import org.fuck.coolapk.utils.getDialogBuilder
-import org.fuck.coolapk.utils.getInstance
-import org.fuck.coolapk.utils.hookBeforeMethod
-import org.fuck.coolapk.utils.isNonNull
-import org.fuck.coolapk.utils.isNull
-import org.fuck.coolapk.utils.log
-import org.fuck.coolapk.utils.setScrollView
-import org.fuck.coolapk.utils.tryOrNull
+import org.fuck.coolapk.utils.*
 import org.fuck.coolapk.view.ViewBuilder
 import org.hello.coolapk.BuildConfig
 import java.lang.reflect.Method
 import kotlin.system.exitProcess
 
-class HookSettings: BaseHook() {
+class HookSettings : BaseHook() {
 
     private lateinit var dataList: MutableList<Any>
     private var hasHookedOnClick = false
     private var isOpen = false
+
 
     override fun init() {
         "com.coolapk.market.view.settings.VXSettingsFragment".findClassOrNull(CoolContext.classLoader)
@@ -46,39 +33,44 @@ class HookSettings: BaseHook() {
                     .filterByName("initData")
                     .firstOrNull()
                     .isNull { log("Class VXSettingsFragment Method initData not found", online = true) }
-                    .isNonNull { method -> method.createHook {
-                        before { param ->
-                            "com.coolapk.market.model.HolderItem".findClassOrNull(CoolContext.classLoader)
-                                .isNull { log("Class HolderItem not found", online = true) }
-                                .isNonNull { holderItemClass ->
-                                    val fuckCoolapkHolderItem = holderItemClass
-                                        .callStaticMethod("newBuilder")
-                                        ?.callMethod("entityType", "holder_item")
-                                        ?.callMethod("string", "Fuck Coolapk R")
-                                        ?.callMethod("intValue", 233)
-                                        ?.callMethod("build").isNull { log("Settings build item fail") }
-                                    val lineHolderItem = holderItemClass
-                                        .callStaticMethod("newBuilder")
-                                        ?.callMethod("entityType", "holder_item")
-                                        ?.callMethod("intValue", 14)
-                                        ?.callMethod("build").isNull { log("Settings build item fail") }
-                                    VXSettingsFragmentClass.methodFinder()
-                                        .findSuper()
-                                        .filterByReturnType(List::class.java)
-                                        .firstOrNull()
-                                        .isNull { log("condition can't find getDataList", online = true) }
-                                        ?.invoke(param.thisObject).apply {
-                                            dataList = (this as MutableList<Any>).apply {
-                                                fuckCoolapkHolderItem?.let { add(it) }
-                                                lineHolderItem?.let { add(it) }
+                    .isNonNull { method ->
+                        method.createHook {
+                            before { param ->
+                                "com.coolapk.market.model.HolderItem".findClassOrNull(CoolContext.classLoader)
+                                    .isNull { log("Class HolderItem not found", online = true) }
+                                    .isNonNull { holderItemClass ->
+                                        val fuckCoolapkHolderItem = holderItemClass
+                                            .callStaticMethod("newBuilder")
+                                            ?.callMethod("entityType", "holder_item")
+                                            ?.callMethod("string", "Fuck Coolapk R")
+                                            ?.callMethod("intValue", 233)
+                                            ?.callMethod("build").isNull { log("Settings build item fail") }
+                                        val lineHolderItem = holderItemClass
+                                            .callStaticMethod("newBuilder")
+                                            ?.callMethod("entityType", "holder_item")
+                                            ?.callMethod("intValue", 14)
+                                            ?.callMethod("build").isNull { log("Settings build item fail") }
+                                        VXSettingsFragmentClass.methodFinder()
+                                            .findSuper()
+                                            .filterByReturnType(List::class.java)
+                                            .firstOrNull()
+                                            .isNull { log("condition can't find getDataList", online = true) }
+                                            ?.invoke(param.thisObject).apply {
+                                                dataList = (this as MutableList<Any>).apply {
+                                                    fuckCoolapkHolderItem?.let { add(it) }
+                                                    lineHolderItem?.let { add(it) }
+                                                }
                                             }
-                                        }
-                                }
-                            tryOrNull { param.thisObject.callMethod("requireActivity") as Activity? }
-                                .isNull { log("requireActivity error"); CoolContext.settingsActivity = CoolContext.activity }
-                                .isNonNull { CoolContext.settingsActivity = it }
+                                    }
+                                tryOrNull { param.thisObject.callMethod("requireActivity") as Activity? }
+                                    .isNull {
+                                        log("requireActivity error"); CoolContext.settingsActivity =
+                                        CoolContext.activity
+                                    }
+                                    .isNonNull { CoolContext.settingsActivity = it }
+                            }
                         }
-                    } }
+                    }
             }
         findSetVXSettingsOnClickMethod()?.hookBeforeMethod { param ->
             val intValue = dataList[param.args[0].callMethod("getAdapterPosition") as Int].callMethod("getIntValue")
@@ -88,14 +80,17 @@ class HookSettings: BaseHook() {
         }
     }
 
+
     private fun findSetVXSettingsOnClickMethod(): Method? {
         val cache = CoolContext.dexKitCache.getMethod("SetVXSettingsOnClick")
-        cache?.let {
-            it.getInstance(CoolContext.classLoader)?.let { method ->
+        if (cache != null) {
+            val methodInstance = cache.getInstance(CoolContext.classLoader)
+            if (methodInstance != null) {
                 log("loaded Method SetVXSettingsOnClick from cache")
-                return method
+                return methodInstance
+            } else {
+                log("Method SetVXSettingsOnClick from cache cannot get instance")
             }
-            log("Method SetVXSettingsOnClick from cache cannot get instance")
         }
         val dexKit = CoolContext.dexKit ?: run {
             log("Find SetVXSettingsOnClick failed, DexKit is null")
@@ -107,13 +102,12 @@ class HookSettings: BaseHook() {
                 returnType("void")
             }
             searchPackages("com.coolapk.market.view.settings")
-        }.firstOrNull { it.className.startsWith("com.coolapk.market.view.settings.VXSettingsFragment") }.isNull {
+        }.firstOrNull { it.className.startsWith("com.coolapk.market.view.settings.VXSettingsFragment") }
+        if (result == null) {
             log("HookSettings, findMethod fail")
         }
-        result?.let {
-            return it.getMethodInstance(CoolContext.classLoader).also { CoolContext.dexKitCache.save("SetVXSettingsOnClick", it) }
-        }
-        return null
+        return result?.getMethodInstance(CoolContext.classLoader)
+            ?.also { CoolContext.dexKitCache.save("SetVXSettingsOnClick", it) }
     }
 
     private fun showDebugDialog() {
@@ -150,10 +144,11 @@ class HookSettings: BaseHook() {
                         showDebugDialog()
                     }
                 }))
-                addView(text("${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE}) ${BuildConfig.BUILD_TYPE}", 12f))
+                addView(text("${BuildConfig.VERSION_NAME} ${BuildConfig.BUILD_TYPE}", 26f))
                 addView(text("修改功能后重启酷安生效", 12f, Color.parseColor("#ff0000")))
-                addView(text(if (XposedEntry.isDraftListenerStarted) "*草稿箱监听已启动" else "*草稿箱监听未启动", 12f))
-
+                if (!XposedEntry.isDraftListenerStarted) {
+                    addView(text("*草稿箱监听未启动", 12f, Color.parseColor("#ff0000")))
+                }
                 addView(text("精简", 20f, Color.parseColor("#0caa64")))
                 addView(text("去除信息流广告", onClickListener = { showRemoveFeedAdsDialog() }))
                 addView(textWithSwitch("去除动态下方广告", "removeBannerAds"))
@@ -165,7 +160,6 @@ class HookSettings: BaseHook() {
                 addView(text("精简首页底部按钮", onClickListener = { showRemoveBottomNavigationDialog() }))
                 addView(text("精简搜索界面", onClickListener = { showRemoveSearchActivityItemDialog() }))
                 addView(text("精简分享面板", onClickListener = { showRemoveSharePanelItemDialog() }))
-
                 addView(text("加强", 20f, Color.parseColor("#0caa64")))
                 addView(textWithSwitch("检测动态状态", "checkFeedStatus"))
                 addView(textWithSwitch("重定向分享动态链接", "modifyShareUrl"))
@@ -173,8 +167,15 @@ class HookSettings: BaseHook() {
                 addView(text("本地用户黑名单", onClickListener = { showLocalBlacklistDialog() }))
                 addView(text("本地话题黑名单", onClickListener = { showLocalTopicBlacklistDialog() }))
                 addView(text("本地标签黑名单", onClickListener = { showLocalTagBlacklistDialog() }))
-
                 addView(text("其他", 20f, Color.parseColor("#0caa64")))
+                addView(
+                    textWithSwitch(
+                        "将版本数据修改为14.0.2",
+                        "customversiondata",
+                        doubleConfirm = true,
+                        message = "该功能仅支持Coolapk 13.0.1版本。\n 该功能尚处于实验阶段，若启用，可能导致若干问题。请谨慎使用。"
+                    )
+                )
                 addView(textWithSwitch("去除更新弹窗", "removeUpdateDialog"))
                 addView(textWithSwitch("拒绝分享动态链接时附加「shareFrom」「shareUid」", "removeShareLinkParams"))
                 addView(textWithSwitch("切换酷安模式（正常版/社区版）", "modifyAppMode"))
@@ -205,6 +206,7 @@ class HookSettings: BaseHook() {
                 show()
             }
         }
+
         fun confirmDialog(value: String, callback: () -> Unit) {
             val builder = getDialogBuilder(CoolContext.settingsActivity)
             builder.apply {
@@ -220,6 +222,7 @@ class HookSettings: BaseHook() {
                 show()
             }
         }
+
         val builder = getDialogBuilder(CoolContext.settingsActivity)
         builder.apply {
             setScrollView(CoolContext.settingsActivity) {
@@ -269,6 +272,7 @@ class HookSettings: BaseHook() {
                 show()
             }
         }
+
         fun confirmDialog(value: String, callback: () -> Unit) {
             val builder = getDialogBuilder(CoolContext.settingsActivity)
             builder.apply {
@@ -284,6 +288,7 @@ class HookSettings: BaseHook() {
                 show()
             }
         }
+
         val builder = getDialogBuilder(CoolContext.settingsActivity)
         builder.apply {
             setScrollView(CoolContext.settingsActivity) {
@@ -308,7 +313,7 @@ class HookSettings: BaseHook() {
                         confirmDialog(it.text.toString(), callback)
                     }
                     for (item in CoolContext.topicBlacklist.getAll()) {
-                        rulesLayout.addView(text(item, onClickListener =  listener))
+                        rulesLayout.addView(text(item, onClickListener = listener))
                     }
                     addView(rulesLayout)
                 }
@@ -331,6 +336,7 @@ class HookSettings: BaseHook() {
                 show()
             }
         }
+
         val builder = getDialogBuilder(CoolContext.settingsActivity)
         builder.setScrollView(CoolContext.settingsActivity) {
             ViewBuilder(CoolContext.settingsActivity).apply {
@@ -377,7 +383,12 @@ class HookSettings: BaseHook() {
                 addView(textWithSwitch("首页", "removeBottomNavigationHome"))
                 addView(textWithSwitch("数码", "removeBottomNavigationItems"))
                 addView(textWithSwitch("发现", "removeBottomNavigationDiscovery"))
-                if (!CoolapkSP.isCommunityMode()) addView(textWithSwitch("应用游戏", "removeBottomNavigationAppsAndGames"))
+                if (!CoolapkSP.isCommunityMode()) addView(
+                    textWithSwitch(
+                        "应用游戏",
+                        "removeBottomNavigationAppsAndGames"
+                    )
+                )
             }
         }.show()
     }
@@ -423,6 +434,7 @@ class HookSettings: BaseHook() {
             }
             return result
         }
+
         fun setFeedFilter(list: List<String>) {
             val sb = StringBuilder()
             list.forEach {
@@ -435,6 +447,7 @@ class HookSettings: BaseHook() {
             }
             OwnSP.set("FeedFilterRegex", result)
         }
+
         val builder = getDialogBuilder(CoolContext.settingsActivity)
         builder.setScrollView(CoolContext.settingsActivity) {
             var regex = ""
@@ -447,9 +460,27 @@ class HookSettings: BaseHook() {
                 listener = { textView ->
                     setFeedFilter(getCurrentFeedFilter().toMutableList().also { it.remove(textView.text) })
                     regexesView.removeAllViews()
-                    getCurrentFeedFilter().forEach { regexesView.addView(text(it, 14f, Color.parseColor("#ff0000"), listener)) }
+                    getCurrentFeedFilter().forEach {
+                        regexesView.addView(
+                            text(
+                                it,
+                                14f,
+                                Color.parseColor("#ff0000"),
+                                listener
+                            )
+                        )
+                    }
                 }
-                getCurrentFeedFilter().forEach { regexesView.addView(text(it, 14f, Color.parseColor("#ff0000"), listener)) }
+                getCurrentFeedFilter().forEach {
+                    regexesView.addView(
+                        text(
+                            it,
+                            14f,
+                            Color.parseColor("#ff0000"),
+                            listener
+                        )
+                    )
+                }
                 addView(text("自定义动态内容黑名单", 20f))
                 addView(text("请输入正则表达式规则：", 18f))
                 addView(editText { regex = it }.also { editText = it })
@@ -461,7 +492,16 @@ class HookSettings: BaseHook() {
                         setFeedFilter(getCurrentFeedFilter().toMutableList().also { it.add(regex) })
                         runCatching { editText.setText("") }
                         regexesView.removeAllViews()
-                        getCurrentFeedFilter().forEach { regexesView.addView(text(it, 14f, Color.parseColor("#ff0000"), listener)) }
+                        getCurrentFeedFilter().forEach {
+                            regexesView.addView(
+                                text(
+                                    it,
+                                    14f,
+                                    Color.parseColor("#ff0000"),
+                                    listener
+                                )
+                            )
+                        }
                     }
                 })
                 addView(text("当前已有规则："))

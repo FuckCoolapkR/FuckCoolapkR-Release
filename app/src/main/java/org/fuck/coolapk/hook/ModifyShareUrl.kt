@@ -9,14 +9,13 @@ import org.fuck.coolapk.utils.log
 import java.net.URI
 
 class ModifyShareUrl: BaseHook() {
-
     override fun init() {
         hasEnable("modifyShareUrl") {
             ClipData::class.java.hookBeforeMethod("newPlainText", CharSequence::class.java, CharSequence::class.java) {
                 var value = it.args[1] as String
                 val regex = Regex("https?://www.coolapk.com/feed/[-A-Za-z0-9+&@#/%?=~_|!:,.;]+[-A-Za-z0-9+&@#/%=~_|]")
                 val result = regex.findAll(value)
-                val redirector = OwnSP.ownSP.getString("redirectLink", null) ?: "www.coolapk1s.com"
+                val redirector = "www.coolapk1s.com"
                 result.forEach { matchResult ->
                     log("match = ${matchResult.value}")
                     val query = URI(matchResult.value).rawQuery

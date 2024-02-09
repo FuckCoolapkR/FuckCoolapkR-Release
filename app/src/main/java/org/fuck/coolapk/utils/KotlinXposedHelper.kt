@@ -1,3 +1,4 @@
+
 package org.fuck.coolapk.utils
 
 import android.content.Context
@@ -27,7 +28,6 @@ fun log(any: Any?, online: Boolean = false) {
     if (online) {
         onlineLog(msg)
     }
-//    Log.d(TAG, msg)
     hasEnable("debugLog", true) {
         XposedBridge.log("$TAG: $msg")
     }
@@ -91,13 +91,7 @@ typealias Hooker = (XC_MethodHook.MethodHookParam) -> Unit
 
 fun Class<*>.hookMethod(method: String?, vararg args: Any?) = try {
     XposedHelpers.findAndHookMethod(this, method, *args)
-} catch (e: NoSuchMethodError) {
-    log(e)
-    null
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    null
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     null
 }
@@ -109,14 +103,14 @@ fun Member.hookMethod(callback: XC_MethodHook) = try {
     null
 }
 
-inline fun XC_MethodHook.MethodHookParam.callHooker(crossinline hooker: Hooker) = try {
+inline fun XC_MethodHook.MethodHookParam.callHooker(hooker: Hooker) = try {
     hooker(this)
 } catch (e: Throwable) {
     log("Error occurred calling hooker on ${this.method}")
     log(e)
 }
 
-inline fun XC_MethodHook.MethodHookParam.callReplacer(crossinline replacer: Replacer) = try {
+inline fun XC_MethodHook.MethodHookParam.callReplacer(replacer: Replacer) = try {
     replacer(this)
 } catch (e: Throwable) {
     log("Error occurred calling replacer on ${this.method}")
@@ -166,13 +160,7 @@ inline fun Class<*>.replaceMethod(
 fun Class<*>.hookAllMethods(methodName: String?, hooker: XC_MethodHook): Set<XC_MethodHook.Unhook> =
     try {
         XposedBridge.hookAllMethods(this, methodName, hooker)
-    } catch (e: NoSuchMethodError) {
-        log(e)
-        emptySet()
-    } catch (e: XposedHelpers.ClassNotFoundError) {
-        log(e)
-        emptySet()
-    } catch (e: ClassNotFoundException) {
+    } catch (e: Throwable) {
         log(e)
         emptySet()
     }
@@ -195,13 +183,7 @@ inline fun Class<*>.replaceAfterAllMethods(methodName: String?, crossinline repl
 
 fun Class<*>.hookConstructor(vararg args: Any?) = try {
     XposedHelpers.findAndHookConstructor(this, *args)
-} catch (e: NoSuchMethodError) {
-    log(e)
-    null
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    null
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     null
 }
@@ -216,20 +198,14 @@ inline fun Class<*>.hookAfterConstructor(vararg args: Any?, crossinline hooker: 
         override fun afterHookedMethod(param: MethodHookParam) = param.callHooker(hooker)
     })
 
-inline fun Class<*>.replaceConstructor(vararg args: Any?, crossinline hooker: Hooker) =
+inline fun Class<*>.replaceConstructor(vararg args: Any?, crossinline replacer: Replacer) =
     hookConstructor(*args, object : XC_MethodReplacement() {
-        override fun replaceHookedMethod(param: MethodHookParam) = param.callHooker(hooker)
+        override fun replaceHookedMethod(param: MethodHookParam) = param.callReplacer(replacer)
     })
 
 fun Class<*>.hookAllConstructors(hooker: XC_MethodHook): Set<XC_MethodHook.Unhook> = try {
     XposedBridge.hookAllConstructors(this, hooker)
-} catch (e: NoSuchMethodError) {
-    log(e)
-    emptySet()
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    emptySet()
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     emptySet()
 }
@@ -251,10 +227,7 @@ inline fun Class<*>.replaceAfterAllConstructors(crossinline hooker: Hooker) =
 
 fun String.hookMethod(classLoader: ClassLoader, method: String?, vararg args: Any?) = try {
     findClass(classLoader).hookMethod(method, *args)
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    null
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     null
 }
@@ -266,10 +239,7 @@ inline fun String.hookBeforeMethod(
     crossinline hooker: Hooker
 ) = try {
     findClass(classLoader).hookBeforeMethod(method, *args, hooker = hooker)
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    null
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     null
 }
@@ -281,10 +251,7 @@ inline fun String.hookAfterMethod(
     crossinline hooker: Hooker
 ) = try {
     findClass(classLoader).hookAfterMethod(method, *args, hooker = hooker)
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    null
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     null
 }
@@ -296,10 +263,7 @@ inline fun String.replaceMethod(
     crossinline replacer: Replacer
 ) = try {
     findClass(classLoader).replaceMethod(method, *args, replacer = replacer)
-} catch (e: XposedHelpers.ClassNotFoundError) {
-    log(e)
-    null
-} catch (e: ClassNotFoundException) {
+} catch (e: Throwable) {
     log(e)
     null
 }
@@ -559,17 +523,17 @@ inline fun ClassLoader.findDexClassLoader(): BaseDexClassLoader? {
     return classLoader
 }
 
-inline fun <T> T?.isNull(crossinline isNull: () -> Unit):T? {
+inline fun <T> T?.isNull(isNull: () -> Unit): T? {
     if (this == null) isNull()
     return this
 }
 
-inline fun <T> T?.isNonNull(crossinline nonNull: (T) -> Unit): T? {
+inline fun <T> T?.isNonNull(nonNull: (T) -> Unit): T? {
     if (this != null) nonNull(this)
     return this
 }
 
-inline fun tryWithXposedLog(crossinline block: () -> Unit) {
+inline fun tryWithXposedLog(block: () -> Unit) {
     try {
         block()
     } catch (e: Throwable) {

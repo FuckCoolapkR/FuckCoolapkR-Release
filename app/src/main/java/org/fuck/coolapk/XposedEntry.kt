@@ -24,27 +24,7 @@ import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.callbacks.XC_LoadPackage
 import org.fuck.coolapk.base.BaseHook
 import org.fuck.coolapk.config.CustomRuleConfig
-import org.fuck.coolapk.hook.CheckFeedStatus
-import org.fuck.coolapk.hook.DisableBugly
-import org.fuck.coolapk.hook.DisableShuzilm
-import org.fuck.coolapk.hook.DisableURLTracking
-import org.fuck.coolapk.hook.DisableUmeng
-import org.fuck.coolapk.hook.FeedPostChecker
-import org.fuck.coolapk.hook.HookPackageManager
-import org.fuck.coolapk.hook.HookRecyclerViewHolder
-import org.fuck.coolapk.hook.HookSettings
-import org.fuck.coolapk.hook.LocalBlackList
-import org.fuck.coolapk.hook.ModifyAppMode
-import org.fuck.coolapk.hook.ModifyShareUrl
-import org.fuck.coolapk.hook.RemoveAds
-import org.fuck.coolapk.hook.RemoveAuditWatermark
-import org.fuck.coolapk.hook.RemoveBottomNavigation
-import org.fuck.coolapk.hook.RemoveSearchActivityItem
-import org.fuck.coolapk.hook.RemoveSearchBoxHotWord
-import org.fuck.coolapk.hook.RemoveShareLinkTrack
-import org.fuck.coolapk.hook.RemoveSharePanelItem
-import org.fuck.coolapk.hook.RemoveUpdateDialog
-import org.fuck.coolapk.hook.TestHook
+import org.fuck.coolapk.hook.*
 import org.fuck.coolapk.utils.ContentEncodeUtils
 import org.fuck.coolapk.utils.HttpConfig
 import org.fuck.coolapk.utils.HttpUtils
@@ -69,8 +49,8 @@ import kotlin.concurrent.thread
 class XposedEntry: IXposedHookLoadPackage {
 
     private val canCheckVersion = Observe(false) { if (it) checkVersion() }
-
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
+
         if (lpparam.packageName != Config.target) return
         if (lpparam.processName.contains("xg_vip_service")) return
         canCheckVersion.isUnsafeInvoke = true
@@ -111,7 +91,8 @@ class XposedEntry: IXposedHookLoadPackage {
                 RemoveAuditWatermark(), // 去除审核水印
                 RemoveSharePanelItem(), // 精简分享面板
                 DisableShuzilm(),
-                TestHook()
+                TestHook(),
+                CustomVersionHook() // 自定义版本数据
             )
             if (!lpparam.processName.contains("xg_vip_service")) {
                 val path = if (context.getExternalFilesDir("rough_draft_backups")?.canWrite() == true) {
@@ -277,6 +258,8 @@ class XposedEntry: IXposedHookLoadPackage {
                 val fd = CoolapkUtils.getFd()
                 if (fd >= 0) {
                     val info = context.packageManager.getPackageArchiveInfo(CoolapkUtils.readLink(fd), PackageManager.GET_META_DATA)
+                    versionName = info?.versionName.toString();
+                    versionCode = info?.versionCode.toString();
                     logXp("Coolapk Version(fd): ${info?.versionName}(${info?.versionCode})")
                     return@runCatching info?.versionCode
                 }
@@ -302,6 +285,8 @@ class XposedEntry: IXposedHookLoadPackage {
     companion object {
 
         var isDraftListenerStarted = false
+        lateinit var versionName: String;
+        lateinit var versionCode: String;
 
         init {
             CoolapkUtils.loadSO()
